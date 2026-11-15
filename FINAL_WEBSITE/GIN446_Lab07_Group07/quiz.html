@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Live Quiz</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="card">
+    <p class="course">GIN446 · Chapter 8 - JavaScript Part 3 · Lab</p>
+    <h1 id="quiz-title">Live Quiz</h1>
+    <p id="best" class="best">Best score: –</p>
+
+    <!-- shown while the JSON files are loading -->
+    <div id="loader" class="loader hidden"><span class="spinner"></span> Loading the questions…</div>
+
+    <!-- shown when loading fails -->
+    <div id="error" class="error hidden">
+      <p id="error-msg"></p>
+      <button id="retry" class="btn-secondary">Try again</button>
+    </div>
+
+    <!-- shown when some questions of the file are invalid -->
+    <p id="warning" class="warning hidden"></p>
+
+    <section id="quiz" class="hidden">
+      <p id="progress" class="progress"></p>
+      <h2 id="question"></h2>
+      <div id="choices" class="choices"></div>
+      <p id="feedback" class="feedback"></p>
+      <button id="next" class="btn-primary" disabled>Next</button>
+    </section>
+
+    <section id="result" class="result hidden">
+      <h2>Quiz finished</h2>
+      <p id="score" class="score"></p>
+      <p id="verdict" class="verdict"></p>
+      <button id="restart" class="btn-primary">Play again</button>
+    </section>
+  </main>
+
+  <script src="quiz.js"></script>
+</body>
+</html>

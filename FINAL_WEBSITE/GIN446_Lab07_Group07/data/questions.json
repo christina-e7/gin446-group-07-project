@@ -1,0 +1,37 @@
+[
+  {
+    "question": "Which keyword declares a constant?",
+    "choices": ["var", "let", "const"],
+    "answer": 2
+  },
+  {
+    "question": "What does JSON.parse('[1, 2, 3]') return?",
+    "choices": ["The string \"[1, 2, 3]\"", "An array of 3 numbers", "An error"],
+    "answer": 1
+  },
+  {
+    "question": "Which method stops a form from being submitted?",
+    "choices": ["e.stopPropagation()", "e.preventDefault()", "form.reset()"],
+    "answer": 1
+  },
+  {
+    "question": "When does the finally block run?",
+    "choices": ["Only if there was no error", "Only after catch", "In all cases"],
+    "answer": 2
+  },
+  {
+    "question": "What does fetch() return?",
+    "choices": ["The JSON data", "A Promise", "A string"],
+    "answer": 7
+  },
+  {
+    "question": "fetch() receives an HTTP 404. What happens?",
+    "choices": ["The promise is rejected", "response.ok is false", "The page reloads"],
+    "answer": 1
+  },
+  {
+    "question": "Where can the await keyword be used?",
+    "choices": ["Anywhere", "Inside an async function", "Only inside then()"],
+    "answer": 1
+  }
+]
