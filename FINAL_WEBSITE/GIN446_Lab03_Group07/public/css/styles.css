@@ -1,0 +1,104 @@
+/* GIN446 – Flexbox lab – CampusConnect */
+* { box-sizing: border-box; }
+body { margin: 0; font-family: Arial, Helvetica, sans-serif; line-height: 1.5; color: #1b1e3f; background: #f4f6fc; }
+h1, h2, h3 { line-height: 1.2; overflow-wrap: anywhere; }
+a { color: #3340b8; }
+a:focus-visible, .button:focus-visible { outline: 3px solid #e8822a; outline-offset: 2px; }
+img { max-width: 100%; }
+
+.skip-link { position: absolute; left: -999px; top: 0; padding: .5rem 1rem; background: #fff; }
+.skip-link:focus { left: 0; z-index: 10; }
+
+main, .site-header, .site-footer { max-width: 70rem; margin-inline: auto; padding: 1rem; }
+
+/* TASK 1 – header and navigation */
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1.5rem;
+}
+.site-header nav { margin-inline-start: auto; }   /* pushes nav to the end */
+.brand { font-size: 1.4rem; font-weight: bold; text-decoration: none; color: #1b1e3f; }
+.nav-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.nav-list a { display: inline-block; padding: .4rem .2rem; font-weight: bold; text-decoration: none; }
+.nav-list a:hover { text-decoration: underline; }
+
+/* TASK 2 – two-region hero */
+.hero {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+  align-items: center;
+  padding: 2rem 0;
+}
+.hero-copy { flex: 2 1 28rem; min-width: 0; }
+.project-summary {
+  flex: 1 1 16rem;
+  min-width: 0;
+  padding: 1.25rem;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 16px rgba(27, 30, 63, .1);
+}
+.eyebrow { margin: 0; font-size: .8rem; font-weight: bold; letter-spacing: 1px; text-transform: uppercase; color: #b85d10; }
+.hero h1 { margin: .4rem 0 .8rem; font-size: clamp(1.8rem, 5vw, 2.8rem); }
+.project-summary ul { padding-left: 1.1rem; margin: 0; }
+.button { display: inline-block; padding: .7rem 1.2rem; font-weight: bold; color: #fff; background: #3340b8; border-radius: 8px; text-decoration: none; }
+.button:hover { background: #28338f; }
+
+/* TASK 3 – cards and action links */
+.catalogue h2, .details h2 { margin-top: 1.5rem; }
+.cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+.card {
+  flex: 1 1 16rem;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  background: #fff;
+  border: 1px solid #d5d9ec;
+  border-radius: 12px;
+}
+.card h3 { margin: 0 0 .5rem; }
+.card p { margin: 0 0 1rem; }
+.card-link {
+  margin-top: auto;            /* sticks the link to the bottom of the card */
+  align-self: flex-start;      /* link keeps its natural width */
+  padding: .5rem .9rem;
+  font-weight: bold;
+  color: #fff;
+  background: #3340b8;
+  border-radius: 6px;
+  text-decoration: none;
+}
+.card-link:hover { background: #28338f; }
+
+.details { padding-bottom: 2rem; max-width: 45rem; }
+
+/* TASK 4 – footer */
+.site-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: none;
+  padding: 1.5rem max(1rem, calc((100% - 68rem) / 2));
+  color: #fff;
+  background: #1b1e3f;
+}
+.site-footer > div { min-width: 0; }
+.site-footer h2 { margin: 0 0 .4rem; font-size: 1.1rem; }
+.site-footer p { margin: 0; }
+.site-footer a { color: #ffd2a8; }
