@@ -1,0 +1,83 @@
+{% extends 'base.html' %}
+{% block body %}
+{% set role=g.user.role %}
+<section class="banner" id="overview">
+  <div class="banner-label">{{role|upper}} WORKSPACE · MEDORA</div>
+  <h1>{{'Dr. ' if role=='doctor' else ''}}{{g.user.name}}, welcome back.</h1>
+  <p>{{ {'patient':'Your next appointment is just a few clicks away.','doctor':'Your schedule, consultations and patient queue in one place.','assistant':'Coordinate visits and keep your clinic running smoothly.','admin':'A clearer view of your clinic and staff.'}[role] }}</p>
+</section>
+<div class="grid stats">
+{% for title, value in stats %}
+  <article class="stat-card"><div class="stat-symbol" aria-hidden="true">{{["▦","◷","✓"][loop.index0]}}</div><small>{{title}}</small><strong data-stat="{{loop.index0}}">{{value}}</strong><span class="stat-detail">{% if role=='patient' %}Your appointment records{% elif role=='doctor' %}Your patient schedule{% else %}Clinic overview{% endif %}</span></article>
+{% endfor %}
+</div>
+
+{% if role in ['patient','assistant','admin'] %}
+<section id="doctors">
+  <div class="sectionhead"><div><small>CARE TEAM</small><h2>Find your specialist</h2></div><span class="subtle">30-minute consultations</span></div>
+  <div class="grid doctors">
+    {% for d in doctors %}
+    <article class="doctor-card">
+      <div class="doctor-top"><div class="avatar doctor-portrait">{% set portrait={'Sarah Haddad':'heart','Adam Khoury':'eye','Lina Saad':'care'}.get(d.name) %}{% if portrait %}<img src="{{url_for('static',filename='doctor-'+portrait+'.svg')}}" alt="Illustrated profile of Dr. {{d.name}}">{% else %}{{d.name[0]}}{% endif %}</div><span class="status-dot">Specialist</span></div>
+      <small>{{d.specialty}}</small><h3>Dr. {{d.name}}</h3>
+      <p>Choose a convenient time from available appointments.</p>
+      <button type="button" class="secondary choose" data-doctor="{{d.id}}" data-name="{{d.name}}">Explore availability →</button>
+    </article>
+    {% endfor %}
+  </div>
+</section>
+<div class="two-col" id="booking-section">
+  <article id="booking">
+    <small>APPOINTMENT BOOKING</small><h2>Choose a time</h2><p id="selected-doctor">Select a doctor to see their availability.</p>
+    <label for="slot-date" id="slot-date-label" hidden>Filter available dates<select id="slot-date"><option value="">All dates</option></select></label><div id="calendar" class="slot-grid" aria-live="polite"></div>
+    <form action="/book" method="post" id="booking-form">
+      <input type="hidden" name="csrf" value="{{session.csrf}}">
+      {% if role!='patient' %}
+      <label>Patient<select name="patient" required>{% for p in patients %}<option value="{{p.id}}">{{p.name}}</option>{% endfor %}</select></label>
+      {% endif %}
+      <label>Available appointment<select name="slot" id="slots" required><option value="">Select a doctor above</option></select></label>
+      <button class="wide">Confirm appointment →</button>
+    </form>
+  </article>
+  <article class="smart-card">
+    <small>✦ POWERED BY GEMINI</small><h2>Smart booking assistant</h2>
+    <p>Tell us the specialty, day or time you prefer. We'll match your request with real available slots.</p>
+    <form id="smart"><label for="prompt">Your request</label><input id="prompt" maxlength="500" placeholder="Cardiology tomorrow afternoon" required><button type="submit">Find matching appointments ✦</button></form>
+    <div class="suggestions"><button type="button" class="chip prompt-suggestion" data-prompt="Cardiology tomorrow afternoon">Cardiology tomorrow</button><button type="button" class="chip prompt-suggestion" data-prompt="General Medicine in the morning">Morning checkup</button></div>
+    <p class="privacy-note">Scheduling only — please do not enter symptoms or personal medical details.</p>
+    <p id="smart-result" role="status" aria-live="polite"></p>
+  </article>
+</div>
+{% endif %}
+
+<section id="appointments-section">
+  <div class="sectionhead"><div><small>YOUR SCHEDULE</small><h2>{{'My appointments' if role=='patient' else 'Appointment desk'}}</h2></div><button class="secondary" id="refresh" type="button">Refresh ↻</button></div>
+  <article class="tablewrap"><p id="refresh-status" role="status" class="subtle"></p>
+    <div class="toolbar"><label>View<select id="appointment-view"><option value="upcoming">Active / upcoming</option><option value="history">History</option><option value="all">All appointments</option></select></label><label>Status<select id="status-filter"><option value="all">All statuses</option>{% for x in ['Booked','Confirmed','Waiting','In consultation','Completed','Cancelled'] %}<option value="{{x}}">{{x}}</option>{% endfor %}</select></label><label>Doctor<select id="doctor-filter"><option value="all">All doctors</option>{% for d in doctors %}<option value="{{d.id}}">{{d.name}}</option>{% endfor %}</select></label><label>Date<input type="date" id="date-filter"></label></div>
+    <table><thead><tr><th>Date & time</th><th>Doctor</th><th>Patient</th><th>Status</th><th>Actions</th></tr></thead><tbody id="appointments"><tr><td colspan="5">Loading appointments…</td></tr></tbody></table>
+  </article>
+</section>
+{% if role in ['doctor','assistant','admin'] %}
+<article id="availability"><div class="sectionhead"><div><small>YOUR CALENDAR</small><h2>Add availability</h2></div></div>
+<form class="inline-form" action="/availability" method="post"><input type="hidden" name="csrf" value="{{session.csrf}}">
+{% if role!='doctor' %}<label>Doctor<select name="doctor">{% for d in doctors %}<option value="{{d.id}}">{{d.name}}</option>{% endfor %}</select></label>{% endif %}
+<label>Date & time<input type="datetime-local" name="start" step="1800" required></label><button>Add 30-minute slot +</button></form></article>
+{% endif %}
+{% if role=='admin' %}
+<article id="admin"><small>CLINIC ADMINISTRATION</small><h2>Manage your team</h2><div class="two-col">
+<div><h3>Create staff account</h3><form action="/staff" method="post"><input type="hidden" name="csrf" value="{{session.csrf}}"><label>Name<input name="name" required></label><label>Email<input name="email" type="email" required></label><label>Password<input name="password" type="password" minlength="10" required></label><label>Role<select name="role"><option value="doctor">Doctor</option><option value="assistant">Assistant</option></select></label><label>Specialty (doctors only)<input name="specialty"></label><button>Create account</button></form></div>
+<div><h3>Team directory</h3>{% for u in staff %}<div class="staff-row"><div class="avatar small-avatar">{{u.name[0]}}</div><div><strong>{{u.name}}</strong><div class="subtle">{{u.role|title}}{% if u.specialty %} · {{u.specialty}}{% endif %}</div></div></div>{% endfor %}</div></div></article>
+{% endif %}
+<article id="account"><small>ACCOUNT SETTINGS</small><h2>Change your password</h2><form class="inline-form" action="/account/password" method="post"><input type="hidden" name="csrf" value="{{session.csrf}}"><label>Current password<span class="password-wrap"><input id="current_password" type="password" name="current_password" autocomplete="current-password" required><button type="button" class="toggle-password" data-password="current_password" aria-controls="current_password" aria-pressed="false">Show</button></span></label><label>New password<span class="password-wrap"><input id="new_password" type="password" name="new_password" minlength="10" maxlength="128" autocomplete="new-password" required><button type="button" class="toggle-password" data-password="new_password" aria-controls="new_password" aria-pressed="false">Show</button></span></label><button>Update password</button></form></article>
+{% if role in ['patient','assistant','admin'] %}
+<dialog id="reschedule-dialog" class="reschedule-dialog">
+<form method="post" id="reschedule-form">
+<input type="hidden" name="csrf" value="{{session.csrf}}">
+<small>CHANGE YOUR VISIT</small><h2>Reschedule appointment</h2><p id="reschedule-detail"></p>
+<label>New available time<select name="slot" id="reschedule-slot" required></select></label>
+<p id="reschedule-status" role="status"></p>
+<div class="dialog-actions"><button type="button" class="secondary" id="close-reschedule">Go back</button><button type="submit" id="confirm-reschedule" disabled>Confirm new time</button></div>
+</form></dialog>
+{% endif %}
+<div id="role" data-role="{{role}}"></div>
+{% endblock %}

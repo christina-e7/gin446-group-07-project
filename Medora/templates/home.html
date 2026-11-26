@@ -1,0 +1,14 @@
+{% extends 'base.html' %}
+{% block body %}
+<section class="hero home-hero">
+<div><span class="eyebrow">✚ YOUR CARE, CONNECTED</span><h1>Better care.<br><em>Less waiting.</em></h1><p>Find your specialist, choose a convenient appointment and stay connected with your clinic, all in one place.</p><div class="hero-actions"><a class="button" href="/register">Book your first visit →</a><a class="secondary button" href="/login">Sign in</a></div><div class="hero-note">30-minute visits · Three demo specialties · Easy online scheduling</div></div>
+<div class="home-illustration"><img src="{{url_for('static',filename='clinic.svg')}}" alt="Illustration of a clinician and appointment calendar"><div class="hero-float"><span>✓</span><div><strong>Care that fits your day</strong><small>Find a time that works for you.</small></div></div></div>
+</section>
+<section class="home-specialties"><div class="sectionhead"><div><small>OUR CARE TEAM</small><h2>Find the right specialist.</h2></div><a href="/login">Explore appointments →</a></div>
+<div class="grid">
+{% for name, specialty, icon in [('Sarah Haddad','Cardiology','heart'),('Adam Khoury','Ophthalmology','eye'),('Lina Saad','General Medicine','care')] %}
+<article class="home-doctor"><img src="{{url_for('static',filename='doctor-'+icon+'.svg')}}" alt="Illustrated profile of Dr. {{name}}"><div><small>{{specialty}}</small><h3>Dr. {{name}}</h3><a href="/login">View availability →</a></div></article>
+{% endfor %}
+</div></section>
+<section class="home-process"><small>HOW IT WORKS</small><h2>From booking to better care.</h2><div class="grid">{% for number, title, detail in [('01','Find a specialist','Choose a doctor or try our smart booking assistant.'),('02','Choose your time','Select a real available appointment and confirm.'),('03','Stay connected','Follow your appointment status from your dashboard.')] %}<article><span class="step-number">{{number}}</span><h3>{{title}}</h3><p>{{detail}}</p></article>{% endfor %}</div></section>
+{% endblock %}
