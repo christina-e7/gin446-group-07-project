@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block body %}
+<div class="auth-layout">
+<section class="auth-story">
+<div class="story-label">✚ MEDORA / CLINIC PORTAL</div>
+<div><h1>Care, made<br>simpler.</h1><p>One connected space for your appointments, specialists and clinic team.</p></div>
+<div class="story-graphic" aria-hidden="true"><div class="story-orbit orbit-one"></div><div class="story-orbit orbit-two"></div><div class="story-cross">✚</div></div>
+<div class="story-foot"><span>01 / Scheduling</span><span>02 / Connected care</span></div>
+</section>
+<section class="auth">
+<small>{{'PATIENT REGISTRATION' if register else 'YOUR PERSONAL WORKSPACE'}}</small>
+<h1>{{'Create your account' if register else 'Welcome back.'}}</h1>
+<p>{{'Start managing your care with Medora.' if register else 'Enter your details to continue to Medora.'}}</p>
+<form method="post">
+<input type="hidden" name="csrf" value="{{session.csrf}}">
+{% if register %}<label for="full-name">Full name</label><input id="full-name" name="name" required maxlength="100" autocomplete="name">{% endif %}
+<label for="email">Email address</label><input id="email" name="email" type="email" required autocomplete="username" placeholder="you@example.com">
+<label for="password">Password</label><div class="password-wrap"><input id="password" name="password" type="password" required autocomplete="{{'new-password' if register else 'current-password'}}" {% if register %}minlength="10" maxlength="128"{% endif %} placeholder="Enter your password"><button class="toggle-password" type="button" data-password="password" aria-controls="password" aria-pressed="false">Show</button></div>
+<button class="wide">{{'Create account' if register else 'Sign in'}} →</button>
+</form>
+<p class="auth-switch">{{'Already registered?' if register else 'New to Medora?'}} <a href="{{'/login' if register else '/register'}}">{{'Sign in' if register else 'Create an account'}}</a></p>
+</section></div>
+{% endblock %}
