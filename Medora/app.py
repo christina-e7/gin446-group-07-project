@@ -1,8 +1,10 @@
 import os, secrets, sqlite3, datetime as dt, functools, json, urllib.request
-from flask import Flask, render_template, request, redirect, url_for, session, g, abort, jsonify, flash
+from io import BytesIO
+from PIL import Image, ImageOps, UnidentifiedImageError
+from flask import Response, Flask, render_template, request, redirect, url_for, session, g, abort, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 app=Flask(__name__)
-app.config.update(SECRET_KEY=os.environ.get('SECRET_KEY') or secrets.token_hex(32), DATABASE=os.environ.get('DATABASE_PATH','medora.db'), SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', SESSION_COOKIE_SECURE=os.environ.get('COOKIE_SECURE')=='1')
+app.config.update(SECRET_KEY=os.environ.get('SECRET_KEY') or secrets.token_hex(32), DATABASE=os.environ.get('DATABASE_PATH','medora.db'), MAX_CONTENT_LENGTH=3*1024*1024, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', SESSION_COOKIE_SECURE=os.environ.get('COOKIE_SECURE')=='1')
 def db():
     if 'db' not in g:
         g.db=sqlite3.connect(app.config['DATABASE']); g.db.row_factory=sqlite3.Row; g.db.execute('PRAGMA foreign_keys=ON')
@@ -15,6 +17,9 @@ def init():
     CREATE TABLE IF NOT EXISTS slots(id INTEGER PRIMARY KEY,doctor INTEGER REFERENCES users(id),start TEXT NOT NULL,UNIQUE(doctor,start));
     CREATE TABLE IF NOT EXISTS appointments(id INTEGER PRIMARY KEY,slot INTEGER REFERENCES slots(id),patient INTEGER REFERENCES users(id),status TEXT NOT NULL DEFAULT 'Booked',created TEXT DEFAULT CURRENT_TIMESTAMP);
     CREATE UNIQUE INDEX IF NOT EXISTS one_booking ON appointments(slot) WHERE status!='Cancelled';'''); d.commit()
+    if 'profile_picture' not in [column['name'] for column in d.execute('PRAGMA table_info(users)')]:
+        d.execute('ALTER TABLE users ADD COLUMN profile_picture BLOB')
+        d.commit()
     if os.environ.get('DEMO_MODE','0')=='1':
         d.execute(
             "UPDATE users SET email=? WHERE email=? "
@@ -33,7 +38,7 @@ def init():
         d.commit()
 @app.before_request
 def before():
-    g.user=db().execute('SELECT * FROM users WHERE id=?',(session.get('uid'),)).fetchone()
+    g.user=db().execute('SELECT id,name,email,password,role,specialty,profile_picture IS NOT NULL AS has_picture FROM users WHERE id=?',(session.get('uid'),)).fetchone()
     if 'csrf' not in session: session['csrf']=secrets.token_hex(24)
     if request.method=='POST' and not secrets.compare_digest(session['csrf'],request.form.get('csrf','') or request.headers.get('X-CSRF-Token','')): abort(400)
 def roles(*allowed):
@@ -88,8 +93,8 @@ def valid_slot(slot):
 @app.get('/dashboard')
 @roles('patient','doctor','assistant','admin')
 def dashboard():
-    doctors=db().execute("SELECT id,name,specialty FROM users WHERE role='doctor'").fetchall(); patients=db().execute("SELECT id,name FROM users WHERE role='patient'").fetchall() if g.user['role'] in ('assistant','admin') else []
-    staff=db().execute('SELECT name,email,role,specialty FROM users ORDER BY role').fetchall() if g.user['role']=='admin' else []
+    doctors=db().execute("SELECT id,name,specialty,profile_picture IS NOT NULL AS has_picture FROM users WHERE role='doctor'").fetchall(); patients=db().execute("SELECT id,name FROM users WHERE role='patient'").fetchall() if g.user['role'] in ('assistant','admin') else []
+    staff=db().execute('SELECT id,name,email,role,specialty,profile_picture IS NOT NULL AS has_picture FROM users ORDER BY role').fetchall() if g.user['role']=='admin' else []
     rows=appointments(); return render_template('dashboard.html',doctors=doctors,patients=patients,staff=staff,rows=rows,stats=counts(rows,g.user['role']))
 @app.get('/api/appointments')
 @roles('patient','doctor','assistant','admin')
@@ -123,6 +128,51 @@ def reschedule(id):
     except sqlite3.IntegrityError:
         db().rollback(); flash('That time is no longer available.')
     return redirect(url_for('dashboard'))
+
+@app.get('/account/picture/<int:user_id>')
+@roles('patient','doctor','assistant','admin')
+def profile_picture(user_id):
+    user=db().execute('SELECT role,profile_picture FROM users WHERE id=?',(user_id,)).fetchone()
+    if not user or (user_id!=g.user['id'] and user['role']!='doctor' and g.user['role']!='admin'):
+        abort(404)
+    if not user['profile_picture']: abort(404)
+    return Response(user['profile_picture'], mimetype='image/jpeg',
+                    headers={'Cache-Control':'private, no-store','X-Content-Type-Options':'nosniff'})
+
+@app.post('/account/picture')
+@roles('patient','doctor','assistant','admin')
+def update_picture():
+    picture=request.files.get('picture')
+    if not picture:
+        flash('Choose a picture first.')
+        return redirect(url_for('dashboard',_anchor='account'))
+    data=picture.stream.read(2*1024*1024+1)
+    if len(data)>2*1024*1024:
+        flash('Choose an image smaller than 2 MB.')
+        return redirect(url_for('dashboard',_anchor='account'))
+    try:
+        with Image.open(BytesIO(data)) as image:
+            if image.format not in ('JPEG','PNG','WEBP') or image.width*image.height>16000000:
+                raise ValueError()
+            image=ImageOps.exif_transpose(image)
+            image.thumbnail((512,512))
+            output=BytesIO()
+            image.convert('RGB').save(output,format='JPEG',quality=85)
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+        flash('Choose a valid JPG, PNG or WebP image (up to 16 megapixels).')
+        return redirect(url_for('dashboard',_anchor='account'))
+    db().execute('UPDATE users SET profile_picture=? WHERE id=?',(output.getvalue(),g.user['id']))
+    db().commit()
+    flash('Profile picture updated.')
+    return redirect(url_for('dashboard',_anchor='account'))
+
+@app.post('/account/picture/remove')
+@roles('patient','doctor','assistant','admin')
+def remove_picture():
+    db().execute('UPDATE users SET profile_picture=NULL WHERE id=?',(g.user['id'],))
+    db().commit()
+    flash('Profile picture removed.')
+    return redirect(url_for('dashboard',_anchor='account'))
 
 @app.post('/account/password')
 @roles('patient','doctor','assistant','admin')
@@ -183,10 +233,11 @@ def smart():
 @app.errorhandler(403)
 @app.errorhandler(404)
 @app.errorhandler(400)
+@app.errorhandler(413)
 def error_page(error):
     if request.path.startswith('/api/'):
         return jsonify(error=error.description),error.code
-    return render_template('error.html',code=error.code,message={400:'Please check your request and try again.',403:'You do not have permission to view this page.',404:'This page could not be found.'}[error.code]),error.code
+    return render_template('error.html',code=error.code,message={413:'The upload is too large. Choose a picture smaller than 2 MB.',400:'Please check your request and try again.',403:'You do not have permission to view this page.',404:'This page could not be found.'}[error.code]),error.code
 
 with app.app_context(): init()
 if __name__=='__main__': app.run(port=5000)

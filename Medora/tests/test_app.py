@@ -134,3 +134,51 @@ def test_booking_ui_elements(client):
     assert b'id="reschedule-dialog"' in response.data
     assert b'id="slot-date"' in response.data
     assert b'doctor-heart.svg' in response.data
+
+
+@pytest.mark.parametrize('email', ['patient@medora.test','cardio@medora.test',
+                                   'assistant@medora.test','admin@medora.test'])
+def test_profile_picture_all_roles(client,email):
+    from io import BytesIO
+    from PIL import Image
+    login(client,email)
+    token=csrf(client)
+    with client.session_transaction() as session:
+        user_id=session['uid']
+    image=BytesIO()
+    Image.new('RGB',(32,32),'green').save(image,format='PNG')
+    image.seek(0)
+    response=client.post('/account/picture',data={'csrf':token,'picture':(image,'photo.png')},
+                         content_type='multipart/form-data',follow_redirects=True)
+    assert b'Profile picture updated.' in response.data
+    photo=client.get('/account/picture/'+str(user_id))
+    assert photo.status_code==200 and photo.mimetype=='image/jpeg'
+    assert Image.open(BytesIO(photo.data)).size==(32,32)
+    response=client.post('/account/picture',data={'csrf':token,'picture':(BytesIO(b'not an image'),'bad.png')},
+                         content_type='multipart/form-data',follow_redirects=True)
+    assert b'Choose a valid JPG' in response.data
+    assert client.get('/account/picture/'+str(user_id)).status_code==200
+    assert client.post('/account/picture/remove',data={}).status_code==400
+    client.post('/account/picture/remove',data={'csrf':token})
+    assert client.get('/account/picture/'+str(user_id)).status_code==404
+
+def test_profile_picture_privacy(client):
+    from app import db
+    from io import BytesIO
+    from PIL import Image
+    login(client,'patient@medora.test')
+    token=csrf(client)
+    image=BytesIO()
+    Image.new('RGB',(32,32),'blue').save(image,format='PNG')
+    image.seek(0)
+    client.post('/account/picture',data={'csrf':token,'picture':(image,'photo.png')},
+                content_type='multipart/form-data')
+    with client.session_transaction() as session:
+        patient_id=session['uid']
+    client.post('/logout',data={'csrf':token})
+    assert client.get('/account/picture/'+str(patient_id)).status_code==302
+    login(client,'assistant@medora.test')
+    assert client.get('/account/picture/'+str(patient_id)).status_code==404
+    client.post('/logout',data={'csrf':csrf(client)})
+    login(client,'admin@medora.test')
+    assert client.get('/account/picture/'+str(patient_id)).status_code==200
