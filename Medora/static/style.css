@@ -124,3 +124,15 @@ button:disabled{opacity:.55;cursor:not-allowed}
 .error-page{max-width:580px;margin:60px auto;text-align:center}.error-page h1{font-size:68px;color:var(--green)}
 #refresh-status{margin:0 0 12px;font-size:12px}
 @media(max-width:740px){.home-hero{padding:12px 0;gap:20px}.home-hero h1{letter-spacing:-2px}.home-process{padding:18px}}
+
+/* Account profile pictures */
+.profile-icon,.small-avatar,.account-avatar{overflow:hidden;flex-shrink:0}
+.profile-icon img,.small-avatar img,.account-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.profile-icon{text-decoration:none}
+.profile-settings{display:flex;align-items:flex-start;gap:24px;margin:20px 0}
+.profile-settings>div:last-child{flex:1;min-width:0}
+.account-avatar{width:112px;height:112px;border-radius:50%;background:#dceee3;color:#176e64;display:grid;place-items:center;font-size:44px;font-weight:700;border:4px solid #eff6f0}
+.profile-settings h3{margin:0}.profile-settings p{overflow-wrap:anywhere}
+.profile-settings input[type=file]{padding:9px;max-width:100%;font-size:13px}
+.profile-settings form{margin-top:12px}.account-divider{border:0;border-top:1px solid #dbe7df;margin:28px 0}
+@media(max-width:480px){.profile-settings{flex-direction:column}.profile-settings>div:last-child{width:100%}}
