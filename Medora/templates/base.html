@@ -18,6 +18,7 @@
 {% if g.user.role in ['patient','assistant','admin'] %}<a href="/dashboard#doctors"><span>✚</span> Specialists</a><a href="/dashboard#booking-section"><span>✦</span> Book a visit</a>{% endif %}
 <a href="/dashboard#appointments-section"><span>▦</span> Appointments</a>
 {% if g.user.role in ['doctor','assistant','admin'] %}<a href="/dashboard#availability"><span>◷</span> Availability</a>{% endif %}
+{% if g.user.role=='assistant' %}<a href="/dashboard#create-doctor"><span>+</span> Create doctor</a>{% endif %}
 {% if g.user.role=='admin' %}<a href="/dashboard#admin"><span>◎</span> Team management</a>{% endif %}
 <a href="/dashboard#account"><span>⚙</span> Account settings</a>
 </nav>
