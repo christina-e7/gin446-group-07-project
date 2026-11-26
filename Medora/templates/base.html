@@ -21,7 +21,7 @@
 {% if g.user.role=='admin' %}<a href="/dashboard#admin"><span>◎</span> Team management</a>{% endif %}
 <a href="/dashboard#account"><span>⚙</span> Account settings</a>
 </nav>
-<div class="sidebar-bottom"><div class="profile"><div class="profile-icon">{{g.user.name[0]}}</div><div><strong>{{g.user.name}}</strong><small>{{g.user.role|title}}</small></div></div>
+<div class="sidebar-bottom"><div class="profile"><a class="profile-icon" href="/dashboard#account" aria-label="Edit profile picture">{% if g.user.has_picture %}<img src="{{url_for('profile_picture',user_id=g.user.id)}}" alt="Your profile picture">{% else %}{{g.user.name[0]}}{% endif %}</a><div><strong>{{g.user.name}}</strong><small>{{g.user.role|title}}</small></div></div>
 <form method="post" action="/logout"><input type="hidden" name="csrf" value="{{session.csrf}}"><button class="signout">Sign out ↗</button></form></div>
 </aside>
 {% else %}
