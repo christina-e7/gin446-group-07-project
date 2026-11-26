@@ -182,3 +182,27 @@ def test_profile_picture_privacy(client):
     client.post('/logout',data={'csrf':csrf(client)})
     login(client,'admin@medora.test')
     assert client.get('/account/picture/'+str(patient_id)).status_code==200
+
+
+def test_mac_photo_upload_ajax(client):
+    from io import BytesIO
+    from PIL import Image
+    import pillow_heif
+    login(client,'patient@medora.test')
+    token=csrf(client)
+    image=BytesIO()
+    pillow_heif.from_pillow(Image.new('RGB',(80,60),'green')).save(image)
+    image.seek(0)
+    response=client.post('/account/picture',
+        data={'csrf':token,'picture':(image,'mac-photo.heic')},
+        headers={'X-Profile-Upload':'1'},content_type='multipart/form-data')
+    assert response.status_code==200 and response.json['ok']
+    with client.session_transaction() as session:
+        user_id=session['uid']
+    photo=client.get('/account/picture/'+str(user_id))
+    assert photo.status_code==200 and photo.mimetype=='image/jpeg'
+    response=client.post('/account/picture',
+        data={'csrf':token,'picture':(BytesIO(b'bad'),'bad.heic')},
+        headers={'X-Profile-Upload':'1'},content_type='multipart/form-data')
+    assert response.status_code==400 and not response.json['ok']
+    assert client.get('/account/picture/'+str(user_id)).data==photo.data
