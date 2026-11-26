@@ -1,10 +1,12 @@
 import os, secrets, sqlite3, datetime as dt, functools, json, urllib.request
 from io import BytesIO
 from PIL import Image, ImageOps, UnidentifiedImageError
+from pillow_heif import register_heif_opener
+register_heif_opener()
 from flask import Response, Flask, render_template, request, redirect, url_for, session, g, abort, jsonify, flash
 from werkzeug.security import generate_password_hash, check_password_hash
 app=Flask(__name__)
-app.config.update(SECRET_KEY=os.environ.get('SECRET_KEY') or secrets.token_hex(32), DATABASE=os.environ.get('DATABASE_PATH','medora.db'), MAX_CONTENT_LENGTH=3*1024*1024, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', SESSION_COOKIE_SECURE=os.environ.get('COOKIE_SECURE')=='1')
+app.config.update(SECRET_KEY=os.environ.get('SECRET_KEY') or secrets.token_hex(32), DATABASE=os.environ.get('DATABASE_PATH','medora.db'), MAX_CONTENT_LENGTH=21*1024*1024, SESSION_COOKIE_HTTPONLY=True, SESSION_COOKIE_SAMESITE='Lax', SESSION_COOKIE_SECURE=os.environ.get('COOKIE_SECURE')=='1')
 def db():
     if 'db' not in g:
         g.db=sqlite3.connect(app.config['DATABASE']); g.db.row_factory=sqlite3.Row; g.db.execute('PRAGMA foreign_keys=ON')
@@ -142,36 +144,38 @@ def profile_picture(user_id):
 @app.post('/account/picture')
 @roles('patient','doctor','assistant','admin')
 def update_picture():
+    # Keep feedback next to the profile controls, including normal form fallback.
+    def result(message, ok):
+        if request.headers.get('X-Profile-Upload')=='1':
+            return jsonify(ok=ok,message=message),200 if ok else 400
+        flash(message,'profile')
+        return redirect(url_for('dashboard',_anchor='account'))
     picture=request.files.get('picture')
     if not picture:
-        flash('Choose a picture first.')
-        return redirect(url_for('dashboard',_anchor='account'))
-    data=picture.stream.read(2*1024*1024+1)
-    if len(data)>2*1024*1024:
-        flash('Choose an image smaller than 2 MB.')
-        return redirect(url_for('dashboard',_anchor='account'))
+        return result('Choose a picture first.',False)
+    data=picture.stream.read(20*1024*1024+1)
+    if len(data)>20*1024*1024:
+        return result('Choose an image smaller than 20 MB.',False)
     try:
         with Image.open(BytesIO(data)) as image:
-            if image.format not in ('JPEG','PNG','WEBP') or image.width*image.height>16000000:
+            if image.format not in ('JPEG','PNG','WEBP','HEIF','HEIC') or image.width*image.height>60000000:
                 raise ValueError()
             image=ImageOps.exif_transpose(image)
             image.thumbnail((512,512))
             output=BytesIO()
             image.convert('RGB').save(output,format='JPEG',quality=85)
-    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
-        flash('Choose a valid JPG, PNG or WebP image (up to 16 megapixels).')
-        return redirect(url_for('dashboard',_anchor='account'))
+    except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError, RuntimeError):
+        return result('Choose a valid JPG, PNG, WebP or HEIC image (up to 60 megapixels).',False)
     db().execute('UPDATE users SET profile_picture=? WHERE id=?',(output.getvalue(),g.user['id']))
     db().commit()
-    flash('Profile picture updated.')
-    return redirect(url_for('dashboard',_anchor='account'))
+    return result('Profile picture updated.',True)
 
 @app.post('/account/picture/remove')
 @roles('patient','doctor','assistant','admin')
 def remove_picture():
     db().execute('UPDATE users SET profile_picture=NULL WHERE id=?',(g.user['id'],))
     db().commit()
-    flash('Profile picture removed.')
+    flash('Profile picture removed.','profile')
     return redirect(url_for('dashboard',_anchor='account'))
 
 @app.post('/account/password')
@@ -237,7 +241,7 @@ def smart():
 def error_page(error):
     if request.path.startswith('/api/'):
         return jsonify(error=error.description),error.code
-    return render_template('error.html',code=error.code,message={413:'The upload is too large. Choose a picture smaller than 2 MB.',400:'Please check your request and try again.',403:'You do not have permission to view this page.',404:'This page could not be found.'}[error.code]),error.code
+    return render_template('error.html',code=error.code,message={413:'The upload is too large. Choose a picture smaller than 20 MB.',400:'Please check your request and try again.',403:'You do not have permission to view this page.',404:'This page could not be found.'}[error.code]),error.code
 
 with app.app_context(): init()
 if __name__=='__main__': app.run(port=5000)
