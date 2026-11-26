@@ -134,3 +134,30 @@ def test_booking_ui_elements(client):
     assert b'id="reschedule-dialog"' in response.data
     assert b'id="slot-date"' in response.data
     assert b'doctor-heart.svg' in response.data
+
+
+def test_assistant_creates_doctor_only(client):
+    from app import db
+    response = login(client, 'assistant@medora.test')
+    assert b'Create doctor account' in response.data
+    token = csrf(client)
+    data = {'csrf': token, 'role': 'doctor', 'name': 'New Specialist',
+            'email': 'newdoctor@example.test', 'password': 'DoctorPass123!',
+            'specialty': 'Dermatology'}
+    response = client.post('/staff', data=data, follow_redirects=True)
+    assert b'Staff account created.' in response.data
+    with app.app_context():
+        user = db().execute("SELECT role,specialty FROM users WHERE email=?",
+                            (data['email'],)).fetchone()
+        assert tuple(user) == ('doctor', 'Dermatology')
+    for forbidden in ('assistant', 'admin', 'patient'):
+        assert client.post('/staff', data={**data, 'role': forbidden,
+            'email': forbidden+'@example.test'}).status_code == 403
+    client.post('/logout', data={'csrf': token})
+    client.get('/login')
+    with client.session_transaction() as session:
+        token = session['csrf']
+    response = client.post('/login', data={'csrf': token, 'email': data['email'],
+        'password': data['password']}, follow_redirects=True)
+    assert b'New Specialist' in response.data
+    assert b'Create doctor account' not in response.data
