@@ -63,6 +63,18 @@
 {% if role!='doctor' %}<label>Doctor<select name="doctor">{% for d in doctors %}<option value="{{d.id}}">{{d.name}}</option>{% endfor %}</select></label>{% endif %}
 <label>Date & time<input type="datetime-local" name="start" step="1800" required></label><button>Add 30-minute slot +</button></form></article>
 {% endif %}
+{% if role=='assistant' %}
+<article id="create-doctor"><small>CARE TEAM</small><h2>Create doctor account</h2><p>Add a specialist to the clinic. They can sign in and set their own availability.</p>
+<form action="/staff" method="post">
+<input type="hidden" name="csrf" value="{{session.csrf}}">
+<input type="hidden" name="role" value="doctor">
+<label>Full name<input name="name" required maxlength="100" placeholder="Doctor's full name"></label>
+<label>Email<input name="email" type="email" required maxlength="200"></label>
+<label for="doctor-password">Temporary password</label><div class="password-wrap"><input id="doctor-password" name="password" type="password" minlength="10" maxlength="128" autocomplete="new-password" required><button type="button" class="toggle-password" data-password="doctor-password" aria-controls="doctor-password" aria-pressed="false">Show</button></div>
+<label>Specialty<input name="specialty" required maxlength="100" placeholder="e.g. Dermatology"></label>
+<button>Create doctor account</button>
+</form></article>
+{% endif %}
 {% if role=='admin' %}
 <article id="admin"><small>CLINIC ADMINISTRATION</small><h2>Manage your team</h2><div class="two-col">
 <div><h3>Create staff account</h3><form action="/staff" method="post"><input type="hidden" name="csrf" value="{{session.csrf}}"><label>Name<input name="name" required></label><label>Email<input name="email" type="email" required></label><label>Password<input name="password" type="password" minlength="10" required></label><label>Role<select name="role"><option value="doctor">Doctor</option><option value="assistant">Assistant</option></select></label><label>Specialty (doctors only)<input name="specialty"></label><button>Create account</button></form></div>
