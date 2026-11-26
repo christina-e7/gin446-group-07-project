@@ -159,9 +159,11 @@ def availability():
     if not db().execute("SELECT 1 FROM users WHERE id=? AND role='doctor'",(doctor,)).fetchone(): abort(400)
     db().execute('INSERT OR IGNORE INTO slots(doctor,start) VALUES(?,?)',(doctor,start.isoformat(timespec='minutes'))); db().commit(); flash('Availability saved.'); return redirect(url_for('dashboard'))
 @app.post('/staff')
-@roles('admin')
+@roles('admin','assistant')
 def staff():
     role=request.form.get('role'); name=request.form.get('name','').strip(); email=request.form.get('email','').strip().lower(); pw=request.form.get('password',''); specialty=request.form.get('specialty','').strip()
+    # Reception can create doctors, but cannot create assistants or administrators.
+    if g.user['role']=='assistant' and role!='doctor': abort(403)
     if role not in ('doctor','assistant') or not name or '@' not in email or not 10<=len(pw)<=128 or (role=='doctor' and not specialty): abort(400)
     try: db().execute('INSERT INTO users(name,email,password,role,specialty) VALUES(?,?,?,?,?)',(name,email,generate_password_hash(pw),role,specialty)); db().commit(); flash('Staff account created.')
     except sqlite3.IntegrityError: flash('Email already exists.')
