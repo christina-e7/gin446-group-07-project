@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf" content="{{session.csrf}}">
+<title>Medora | Clinic</title>
+<link rel="icon" type="image/svg+xml" href="{{url_for('static',filename='favicon.svg')}}">
+<link rel="stylesheet" href="{{url_for('static',filename='style.css')}}">
+</head>
+<body class="{{'workspace' if g.user else 'public-page'}}">
+{% if g.user %}
+<aside class="sidebar">
+<a class="brand" href="/">✚ medora<span>.</span></a>
+<div class="sidebar-caption">WORKSPACE</div>
+<nav class="side-nav" aria-label="Workspace">
+<a class="nav-home" href="/dashboard"><span>⌂</span> Overview</a>
+{% if g.user.role in ['patient','assistant','admin'] %}<a href="/dashboard#doctors"><span>✚</span> Specialists</a><a href="/dashboard#booking-section"><span>✦</span> Book a visit</a>{% endif %}
+<a href="/dashboard#appointments-section"><span>▦</span> Appointments</a>
+{% if g.user.role in ['doctor','assistant','admin'] %}<a href="/dashboard#availability"><span>◷</span> Availability</a>{% endif %}
+{% if g.user.role=='admin' %}<a href="/dashboard#admin"><span>◎</span> Team management</a>{% endif %}
+<a href="/dashboard#account"><span>⚙</span> Account settings</a>
+</nav>
+<div class="sidebar-bottom"><div class="profile"><div class="profile-icon">{{g.user.name[0]}}</div><div><strong>{{g.user.name}}</strong><small>{{g.user.role|title}}</small></div></div>
+<form method="post" action="/logout"><input type="hidden" name="csrf" value="{{session.csrf}}"><button class="signout">Sign out ↗</button></form></div>
+</aside>
+{% else %}
+<header><a class="brand" href="/">✚ medora<span>.</span></a><nav><a href="/login">Sign in</a><a class="button" href="/register">Get started →</a></nav></header>
+{% endif %}
+<div class="page-content">
+{% if g.user %}<div class="workspace-top"><span>Medora / {{g.user.role|title}} workspace</span><span class="workspace-tag"><i></i> Clinic portal</span></div>{% endif %}
+<main>{% for m in get_flashed_messages() %}<div class="notice" role="status">{{m}}</div>{% endfor %}{% block body %}{% endblock %}</main>
+<footer>MEDORA · University demonstration · Fictional data only</footer>
+</div>
+<script src="{{url_for('static',filename='app.js')}}" defer></script>
+</body></html>
