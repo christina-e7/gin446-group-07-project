@@ -200,3 +200,43 @@ document.querySelectorAll('[data-password]').forEach(button => {
     button.setAttribute('aria-pressed', String(showing));
   });
 });
+
+
+// Upload without navigating away, so failures remain visible beside the form.
+const photoForm = document.querySelector('#profile-upload');
+if (photoForm) {
+  photoForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    const output = document.querySelector('#profile-upload-status');
+    const button = photoForm.querySelector('button[type=submit]');
+    const file = photoForm.querySelector('input[type=file]').files[0];
+    if (!file) { output.textContent = 'Choose a picture first.'; return; }
+    if (file.size > 20*1024*1024) {
+      output.textContent = 'Choose an image smaller than 20 MB.';
+      return;
+    }
+    button.disabled = true;
+    output.textContent = 'Uploading your picture…';
+    try {
+      const response = await fetch(photoForm.action, {
+        method: 'POST',
+        headers: {'X-Profile-Upload':'1', 'X-CSRF-Token':csrf},
+        body: new FormData(photoForm)
+      });
+      if (response.redirected) throw Error('Your session expired. Sign in again and retry.');
+      if (response.status === 413) throw Error('Your image is too large.');
+      if (!response.headers.get('content-type')?.includes('application/json')) {
+        throw Error('Upload failed. Please refresh and try again.');
+      }
+      const data = await response.json();
+      if (!response.ok || !data.ok) throw Error(data.message || 'Upload failed.');
+      output.textContent = data.message;
+      // Reload the account page only after the server confirms the save.
+      window.location.replace('/dashboard?photo=' + Date.now() + '#account');
+    } catch (error) {
+      output.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  });
+}
